@@ -1,0 +1,103 @@
+.webcam-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.webcam-box {
+  position: relative;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.webcam-video {
+  display: block;
+  background-color: #000;
+}
+
+.webcam-placeholder,
+.webcam-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 14px;
+  text-align: center;
+  padding: 1rem;
+}
+
+.webcam-error {
+  background-color: rgba(220, 38, 38, 0.8);
+}
+
+.webcam-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.webcam-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.webcam-button.start {
+  background-color: #10b981;
+  color: white;
+}
+
+.webcam-button.start:hover {
+  background-color: #059669;
+}
+
+.webcam-button.stop {
+  background-color: #ef4444;
+  color: white;
+}
+
+.webcam-button.stop:hover {
+  background-color: #dc2626;
+}
+
+.permission-hint {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  margin: 0;
+  max-width: 300px;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .webcam-container {
+    padding: 0.5rem;
+  }
+  
+  .webcam-video {
+    width: 100%;
+    height: auto;
+  }
+  
+  .webcam-button {
+    width: 100%;
+    max-width: 200px;
+  }
+}
