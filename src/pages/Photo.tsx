@@ -14,6 +14,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [rusheeName, setRusheeName] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
   const [showWebcam, setShowWebcam] = useState<boolean>(false);
   const [isCheckingApplicant, setIsCheckingApplicant] = useState<boolean>(false);
   const [applicantExists, setApplicantExists] = useState<boolean>(false);
@@ -77,13 +78,20 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
       if (records.length > 0) {
         const record = records[0];
         const photoField = record.get('photo');
+        const yearField = record.get('year');
         
         console.log('Applicant name:', name);
         console.log('Record found:', record);
         console.log('Photo field raw:', photoField);
+        console.log('Year field raw:', yearField);
         console.log('Photo field type:', typeof photoField);
         console.log('Is photo field truthy:', !!photoField);
         console.log('Is photo field not empty string:', photoField !== '');
+        
+        // Set the year from the existing record
+        if (yearField) {
+          setSelectedYear(yearField.toString());
+        }
         
         // Check if photo field exists and is not empty
         if (photoField && photoField !== '' && photoField.toString().trim() !== '') {
@@ -104,6 +112,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           setTimeout(() => {
             setShowSuccess(false);
             setRusheeName('');
+            setSelectedYear('');
             setApplicantExists(false);
             setApplicantRecord(null);
           }, 2000);
@@ -131,6 +140,10 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   const handleSubmit = (name: string) => {
     if (name.trim() === '') {
       alert('Please enter a rushee name');
+      return;
+    }
+    if (selectedYear === '') {
+      alert('Please select a year');
       return;
     }
     checkApplicant(name.trim());
@@ -180,6 +193,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           // Update existing record
           await base('Applicants').update(applicantRecord.id, {
             'photo': publicUrl,
+            'year': selectedYear,
             'day_1': true
           });
         } else {
@@ -187,6 +201,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           await base('Applicants').create({
             'applicant_name': rusheeName,
             'photo': publicUrl,
+            'year': selectedYear,
             'day_1': true
           });
         }
@@ -200,6 +215,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           setShowSuccess(false);
           setShowWebcam(false);
           setRusheeName('');
+          setSelectedYear('');
           setApplicantExists(false);
           setApplicantRecord(null);
         }, 2000);
@@ -225,8 +241,8 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   const handleApplicantSelect = (applicant: { id: string; name: string }) => {
     // When an applicant is selected from autocomplete, automatically check them
     setRusheeName(applicant.name);
-    // Trigger the check process
-    handleSubmit(applicant.name);
+    // Trigger the check process (this will also set the year from the record)
+    checkApplicant(applicant.name.trim());
   };
 
   return (
@@ -252,12 +268,28 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
                 />
                 <button 
                   onClick={() => handleSubmit(rusheeName)}
-                  disabled={isCheckingApplicant || rusheeName.trim() === ''}
+                  disabled={isCheckingApplicant || rusheeName.trim() === '' || selectedYear === ''}
                   className="submit-icon-button"
                 >
                   {isCheckingApplicant ? '⟳' : '→'}
                 </button>
               </div>
+              
+              <label className="input-label">
+                Year:
+              </label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                disabled={isCheckingApplicant}
+                className="year-dropdown"
+              >
+                <option value="">Select Year</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029</option>
+              </select>
             </div>
           ) : (
             <div className="rushee-display">
