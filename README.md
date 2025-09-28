@@ -1,4 +1,4 @@
-# 📸 Rush Check-In System
+# Rush Check-In System
 
 A web application for managing check-ins during SEP Recruitment. This system allows applicants to check in by taking a photo, which is then stored securely and linked to their applicant record.
 
