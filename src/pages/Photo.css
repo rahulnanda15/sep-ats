@@ -1,7 +1,8 @@
 .photo-page {
-
+  min-height: 100vh;
   background: white;
   color: #333;
+  padding: 2rem 1rem;
 }
 
 .photo-header {
@@ -9,8 +10,8 @@
 }
 
 .photo-header h1 {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
+  font-size: 24px;
+  margin-bottom: 2rem;
   color: #333;
 }
 
@@ -21,7 +22,7 @@
 
 .photo-content {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 2rem auto 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,7 +34,7 @@
 .captured-section {
   background: #f8f9fa;
   border-radius: 20px;
-  padding: 2rem;
+  padding: 1.5rem;
   border: 1px solid #e9ecef;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
@@ -41,6 +42,20 @@
 .input-section {
   margin-bottom: 1.5rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.input-with-button {
+  display: flex;
+  width: 100%;
+  position: relative;
 }
 
 .input-label {
@@ -73,30 +88,36 @@
   color: #999;
 }
 
-.submit-button {
-  margin-top: 1rem;
-  padding: 0.75rem 2rem;
+.submit-icon-button {
+  width: 48px;
+  height: 48px;
   background: #667eea;
   color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+  border: 2px solid #e9ecef;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  font-size: 1.2rem;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.submit-button:hover:not(:disabled) {
+.submit-icon-button:hover:not(:disabled) {
   background: #5a6fd8;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.submit-button:disabled {
+.submit-icon-button:disabled {
   background: #ccc;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.6;
 }
 
 .success-screen {

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import App from '../App';
 import Photo from '../pages/Photo';
 
 const AppRouter: React.FC = () => {
@@ -20,13 +19,8 @@ const AppRouter: React.FC = () => {
   };
 
   const renderPage = () => {
-    switch (currentPath) {
-      case '/photo':
-        return <Photo navigate={navigate} />;
-      case '/':
-      default:
-        return <App navigate={navigate} />;
-    }
+    // Always show the Photo page (check-in app)
+    return <Photo navigate={navigate} />;
   };
 
   return (

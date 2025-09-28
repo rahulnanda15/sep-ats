@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Webcam from '../components/Webcam';
+import ApplicantAutocomplete from '../components/ApplicantAutocomplete';
 import Airtable from 'airtable';
 import {createClient } from '@supabase/supabase-js';
 import './Photo.css';
@@ -77,9 +78,19 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         const photoField = record.get('photo');
         
         if (photoField && photoField !== '') {
-          // Applicant exists and has photo - show success
+          // Applicant exists and has photo - mark attendance and show success
           setApplicantExists(true);
           setApplicantRecord(record);
+          
+          // Update attendance for existing applicant
+          try {
+            await base('Applicants').update(record.id, {
+              'day_1': true
+            });
+          } catch (error) {
+            console.error('Error updating attendance:', error);
+          }
+          
           setShowSuccess(true);
           setTimeout(() => {
             setShowSuccess(false);
@@ -155,17 +166,19 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           return;
         }
         
-        // Update Airtable with the Supabase public URL
+        // Update Airtable with the Supabase public URL and mark attendance
         if (applicantExists && applicantRecord) {
           // Update existing record
           await base('Applicants').update(applicantRecord.id, {
-            'photo': publicUrl
+            'photo': publicUrl,
+            'day_1': true
           });
         } else {
           // Create new record
           await base('Applicants').create({
             'applicant_name': rusheeName,
-            'photo': publicUrl
+            'photo': publicUrl,
+            'day_1': true
           });
         }
         
@@ -200,51 +213,42 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
     setApplicantRecord(null);
   };
 
+  const handleApplicantSelect = (applicant: { id: string; name: string }) => {
+    // When an applicant is selected from autocomplete, automatically check them
+    setRusheeName(applicant.name);
+    // Trigger the check process
+    handleSubmit();
+  };
+
   return (
     <div className="photo-page">
-      <nav className="navigation">
-        <div className="nav-links">
-          <button 
-            onClick={() => navigate?.('/')} 
-            className="nav-button"
-          >
-            🏠 Home
-          </button>
-          <button 
-            onClick={() => navigate?.('/photo')} 
-            className="nav-button active"
-          >
-            📸 Check In
-          </button>
-        </div>
-      </nav>
-      
       <div className="photo-header">
-        <h1>Check In</h1>
+        <h1>📸 Rush Check-In</h1>
       </div>
 
       <div className="photo-content">
         <div className="webcam-section">
           {!showWebcam ? (
             <div className="input-section">
-              <label htmlFor="rushee-name" className="input-label">
-                Rushee Name:
+              <label htmlFor="applicant-name" className="input-label">
+                Applicant Name:
               </label>
-              <input
-                id="rushee-name"
-                type="text"
-                value={rusheeName}
-                onChange={(e) => setRusheeName(e.target.value)}
-                placeholder="Enter rushee name"
-                className="rushee-input"
-              />
-              <button 
-                onClick={handleSubmit}
-                disabled={isCheckingApplicant || rusheeName.trim() === ''}
-                className="submit-button"
-              >
-                {isCheckingApplicant ? 'Checking...' : 'Submit'}
-              </button>
+              <div className="input-with-button">
+                <ApplicantAutocomplete
+                  value={rusheeName}
+                  onChange={setRusheeName}
+                  onSelect={handleApplicantSelect}
+                  placeholder="Enter applicant name"
+                  disabled={isCheckingApplicant}
+                />
+                <button 
+                  onClick={handleSubmit}
+                  disabled={isCheckingApplicant || rusheeName.trim() === ''}
+                  className="submit-icon-button"
+                >
+                  {isCheckingApplicant ? '⟳' : '→'}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="rushee-display">
