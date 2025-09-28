@@ -72,13 +72,26 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         filterByFormula: `{applicant_name} = "${name}"`,
         maxRecords: 1
       }).all();
+      
 
       if (records.length > 0) {
         const record = records[0];
         const photoField = record.get('photo');
         
-        if (photoField && photoField !== '') {
-          // Applicant exists and has photo - mark attendance and show success
+        console.log('=== DEBUGGING ARMAAN ===');
+        console.log('Applicant name:', name);
+        console.log('Record found:', record);
+        console.log('Photo field raw:', photoField);
+        console.log('Photo field type:', typeof photoField);
+        console.log('Photo field length:', photoField ? photoField.length : 'null/undefined');
+        console.log('Photo field trimmed:', photoField ? photoField.trim() : 'null/undefined');
+        console.log('Is photo field truthy:', !!photoField);
+        console.log('Is photo field not empty string:', photoField !== '');
+        console.log('Is photo field trimmed not empty:', photoField ? photoField.trim() !== '' : false);
+        
+        // Check if photo field exists and is not empty
+        if (photoField && photoField !== '' && photoField.trim() !== '') {
+          // Applicant exists and has photo - go to check-in success screen
           setApplicantExists(true);
           setApplicantRecord(record);
           
@@ -99,13 +112,13 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
             setApplicantRecord(null);
           }, 2000);
         } else {
-          // Applicant exists but no photo - show webcam
+          // Applicant exists but no photo - add/update record and take photo
           setApplicantExists(true);
           setApplicantRecord(record);
           setShowWebcam(true);
         }
       } else {
-        // Applicant doesn't exist - show webcam
+        // Applicant doesn't exist - will create new record when photo is taken
         setApplicantExists(false);
         setApplicantRecord(null);
         setShowWebcam(true);
@@ -119,12 +132,12 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   };
 
   // Handle submit button click
-  const handleSubmit = () => {
-    if (rusheeName.trim() === '') {
+  const handleSubmit = (name: string) => {
+    if (name.trim() === '') {
       alert('Please enter a rushee name');
       return;
     }
-    checkApplicant(rusheeName.trim());
+    checkApplicant(name.trim());
   };
 
   const capturePhoto = () => {
@@ -217,7 +230,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
     // When an applicant is selected from autocomplete, automatically check them
     setRusheeName(applicant.name);
     // Trigger the check process
-    handleSubmit();
+    handleSubmit(applicant.name);
   };
 
   return (
@@ -230,7 +243,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         <div className="webcam-section">
           {!showWebcam ? (
             <div className="input-section">
-              <label htmlFor="applicant-name" className="input-label">
+              <label className="input-label">
                 Applicant Name:
               </label>
               <div className="input-with-button">
@@ -242,7 +255,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
                   disabled={isCheckingApplicant}
                 />
                 <button 
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(rusheeName)}
                   disabled={isCheckingApplicant || rusheeName.trim() === ''}
                   className="submit-icon-button"
                 >
@@ -265,7 +278,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           )}
 
           {showWebcam && (
-            <>
+            <div className="webcam-capture-container">
               <Webcam width={500} height={375} autoStart={true} />
               <button 
                 onClick={capturePhoto}
@@ -274,7 +287,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
                 title={isCapturing ? 'Capturing...' : 'Capture Photo'}
               >
               </button>
-            </>
+            </div>
           )}
         </div>
 
