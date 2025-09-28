@@ -83,14 +83,11 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         console.log('Record found:', record);
         console.log('Photo field raw:', photoField);
         console.log('Photo field type:', typeof photoField);
-        console.log('Photo field length:', photoField ? photoField.length : 'null/undefined');
-        console.log('Photo field trimmed:', photoField ? photoField.trim() : 'null/undefined');
         console.log('Is photo field truthy:', !!photoField);
         console.log('Is photo field not empty string:', photoField !== '');
-        console.log('Is photo field trimmed not empty:', photoField ? photoField.trim() !== '' : false);
         
         // Check if photo field exists and is not empty
-        if (photoField && photoField !== '' && photoField.trim() !== '') {
+        if (photoField && photoField !== '' && photoField.toString().trim() !== '') {
           // Applicant exists and has photo - go to check-in success screen
           setApplicantExists(true);
           setApplicantRecord(record);
