@@ -18,24 +18,41 @@ const Webcam: React.FC<WebcamProps> = ({
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [currentCamera, setCurrentCamera] = useState<'user' | 'environment'>('user');
+  const [isMobile, setIsMobile] = useState(false);
 
-  const startWebcam = async () => {
+  // Detect if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      setIsMobile(isMobileDevice);
+    };
+    
+    checkMobile();
+  }, []);
+
+  const startWebcam = async (cameraType: 'user' | 'environment' = currentCamera) => {
     try {
       setError(null);
       
-      // Request camera access
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Request camera access with specific facing mode
+      const constraints = {
         video: {
           width: { ideal: width },
-          height: { ideal: height }
+          height: { ideal: height },
+          ...(isMobile && { facingMode: cameraType })
         },
         audio: false
-      });
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         setIsStreaming(true);
         setHasPermission(true);
+        setCurrentCamera(cameraType);
       }
     } catch (err) {
       console.error('Error accessing webcam:', err);
@@ -60,6 +77,17 @@ const Webcam: React.FC<WebcamProps> = ({
       stopWebcam();
     } else {
       startWebcam();
+    }
+  };
+
+  const flipCamera = async () => {
+    if (isStreaming) {
+      const newCamera = currentCamera === 'user' ? 'environment' : 'user';
+      stopWebcam();
+      // Small delay to ensure camera is fully stopped
+      setTimeout(() => {
+        startWebcam(newCamera);
+      }, 100);
     }
   };
 
@@ -123,6 +151,19 @@ const Webcam: React.FC<WebcamProps> = ({
               Please allow camera access in your browser settings
             </p>
           )}
+        </div>
+      )}
+
+      {/* Flip camera button - only show on mobile devices when streaming */}
+      {isMobile && isStreaming && (
+        <div className="webcam-flip-controls">
+          <button 
+            onClick={flipCamera}
+            className="flip-camera-button"
+            title="Flip Camera"
+          >
+            🔄
+          </button>
         </div>
       )}
       
