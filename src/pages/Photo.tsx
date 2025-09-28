@@ -78,7 +78,6 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         const record = records[0];
         const photoField = record.get('photo');
         
-        console.log('=== DEBUGGING ARMAAN ===');
         console.log('Applicant name:', name);
         console.log('Record found:', record);
         console.log('Photo field raw:', photoField);
