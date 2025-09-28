@@ -86,14 +86,17 @@
 }
 
 /* Responsive design */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .webcam-container {
     padding: 0.5rem;
+    max-width: 350px;
+    margin: 0 auto;
   }
   
   .webcam-video {
     width: 100%;
     height: auto;
+    max-width: 320px;
   }
   
   .webcam-button {

@@ -276,7 +276,11 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
 
           {showWebcam && (
             <div className="webcam-capture-container">
-              <Webcam width={500} height={375} autoStart={true} />
+              <Webcam 
+                width={window.innerWidth <= 768 ? 320 : 500} 
+                height={window.innerWidth <= 768 ? 240 : 375} 
+                autoStart={true} 
+              />
               <button 
                 onClick={capturePhoto}
                 disabled={isCapturing}
