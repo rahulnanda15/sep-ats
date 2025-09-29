@@ -18,6 +18,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [rusheeName, setRusheeName] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
   const [showWebcam, setShowWebcam] = useState<boolean>(false);
   const [isCheckingApplicant, setIsCheckingApplicant] = useState<boolean>(false);
   const [applicantExists, setApplicantExists] = useState<boolean>(false);
@@ -72,28 +73,60 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   const checkApplicant = async (name: string) => {
     setIsCheckingApplicant(true);
     try {
-      const records = await base('Applicants').select({
-        filterByFormula: `{applicant_name} = "${name}"`,
-        maxRecords: 1
-      }).all();
+      // Ensure we have a valid year before querying
+      if (!selectedYear || selectedYear === '') {
+        console.error('No year selected');
+        alert('Please select a year');
+        setIsCheckingApplicant(false);
+        return;
+      }
+
+      console.log('Checking applicant:', name, 'with year:', selectedYear);
+      
+      let records;
+      try {
+        records = await base('Applicants').select({
+          filterByFormula: `AND({applicant_name} = "${name}", {year} = ${parseInt(selectedYear)})`,
+          maxRecords: 1
+        }).all();
+      } catch (filterError) {
+        console.log('Filter formula failed, trying alternative approach:', filterError);
+        // Fallback: get all records and filter manually
+        const allRecords = await base('Applicants').select({
+          filterByFormula: `{applicant_name} = "${name}"`,
+          maxRecords: 100
+        }).all();
+        
+        records = allRecords.filter(record => {
+          const recordYear = record.get('year');
+          return recordYear && parseInt(recordYear.toString()) === parseInt(selectedYear);
+        });
+      }
+      
+      console.log('Found records:', records.length);
       
 
       if (records.length > 0) {
         const record = records[0];
         const photoField = record.get('photo');
         const yearField = record.get('year');
+        const emailField = record.get('email');
         
         console.log('Applicant name:', name);
         console.log('Record found:', record);
         console.log('Photo field raw:', photoField);
         console.log('Year field raw:', yearField);
+        console.log('Email field raw:', emailField);
         console.log('Photo field type:', typeof photoField);
         console.log('Is photo field truthy:', !!photoField);
         console.log('Is photo field not empty string:', photoField !== '');
         
-        // Set the year from the existing record
+        // Set the year and email from the existing record
         if (yearField) {
           setSelectedYear(yearField.toString());
+        }
+        if (emailField) {
+          setEmail(emailField.toString());
         }
         
         // Check if photo field exists and is not empty
@@ -116,6 +149,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
             setShowSuccess(false);
             setRusheeName('');
             setSelectedYear('');
+            setEmail('');
             setApplicantExists(false);
             setApplicantRecord(null);
           }, 2000);
@@ -147,6 +181,10 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
     }
     if (selectedYear === '') {
       alert('Please select a year');
+      return;
+    }
+    if (email.trim() === '') {
+      alert('Please enter an email');
       return;
     }
     checkApplicant(name.trim());
@@ -193,10 +231,11 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
         // Update Airtable with the Supabase public URL and mark attendance
         if (applicantExists && applicantRecord) {
-          // Update existing record
+          // Update existing record (including email if different)
           await base('Applicants').update(applicantRecord.id, {
             'photo': publicUrl,
             'year': parseInt(selectedYear),
+            'email': email,
             [currDay]: true
           });
         } else {
@@ -205,6 +244,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
             'applicant_name': rusheeName,
             'photo': publicUrl,
             'year': parseInt(selectedYear),
+            'email': email,
             'status': 'Ongoing',
             [currDay]: true
           });
@@ -220,6 +260,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           setShowWebcam(false);
           setRusheeName('');
           setSelectedYear('');
+          setEmail('');
           setApplicantExists(false);
           setApplicantRecord(null);
         }, 2000);
@@ -272,7 +313,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
                 />
                 <button 
                   onClick={() => handleSubmit(rusheeName)}
-                  disabled={isCheckingApplicant || rusheeName.trim() === '' || selectedYear === ''}
+                  disabled={isCheckingApplicant || rusheeName.trim() === '' || selectedYear === '' || email.trim() === ''}
                   className="submit-icon-button"
                 >
                   {isCheckingApplicant ? '⟳' : '→'}
@@ -294,6 +335,18 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
                 <option value="2028">2028</option>
                 <option value="2029">2029</option>
               </select>
+              
+              <label className="input-label">
+                Email:
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email address"
+                disabled={isCheckingApplicant}
+                className="email-input"
+              />
             </div>
           ) : (
             <div className="rushee-display">
