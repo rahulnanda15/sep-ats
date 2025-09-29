@@ -193,7 +193,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           // Update existing record
           await base('Applicants').update(applicantRecord.id, {
             'photo': publicUrl,
-            'year': selectedYear,
+            'year': parseInt(selectedYear),
             'day_1': true
           });
         } else {
@@ -201,7 +201,8 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           await base('Applicants').create({
             'applicant_name': rusheeName,
             'photo': publicUrl,
-            'year': selectedYear,
+            'year': parseInt(selectedYear),
+            'status': 'Ongoing',
             'day_1': true
           });
         }
