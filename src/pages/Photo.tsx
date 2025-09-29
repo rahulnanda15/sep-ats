@@ -10,6 +10,9 @@ interface PhotoProps {
 }
 
 const Photo: React.FC<PhotoProps> = ({ navigate }) => {
+
+  const currDay = "day_1";
+
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -100,11 +103,11 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           setApplicantRecord(record);
           
           // Update attendance for existing applicant
-          try {
-            await base('Applicants').update(record.id, {
-              'day_1': true
-            });
-          } catch (error) {
+            try {
+              await base('Applicants').update(record.id, {
+                [currDay]: true
+              });
+            } catch (error) {
             console.error('Error updating attendance:', error);
           }
           
@@ -194,7 +197,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           await base('Applicants').update(applicantRecord.id, {
             'photo': publicUrl,
             'year': parseInt(selectedYear),
-            'day_1': true
+            [currDay]: true
           });
         } else {
           // Create new record
@@ -203,7 +206,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
             'photo': publicUrl,
             'year': parseInt(selectedYear),
             'status': 'Ongoing',
-            'day_1': true
+            [currDay]: true
           });
         }
         
