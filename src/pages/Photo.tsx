@@ -70,23 +70,27 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
     }
   }
   // Check if applicant exists and has photo
-  const checkApplicant = async (name: string) => {
+  const checkApplicant = async (name: string, yearOverride?: string, emailOverride?: string) => {
     setIsCheckingApplicant(true);
     try {
+      // Use override values if provided, otherwise use state values
+      const yearToUse = yearOverride || selectedYear;
+      const emailToUse = emailOverride || email;
+      
       // Ensure we have a valid year before querying
-      if (!selectedYear || selectedYear === '') {
+      if (!yearToUse || yearToUse === '') {
         console.error('No year selected');
         alert('Please select a year');
         setIsCheckingApplicant(false);
         return;
       }
-
-      console.log('Checking applicant:', name, 'with year:', selectedYear);
+      
+      console.log('Checking applicant:', name, 'with year:', yearToUse);
       
       let records;
       try {
         records = await base('Applicants').select({
-          filterByFormula: `AND({applicant_name} = "${name}", {year} = ${parseInt(selectedYear)})`,
+          filterByFormula: `AND({applicant_name} = "${name}", {year} = ${parseInt(yearToUse)})`,
           maxRecords: 1
         }).all();
       } catch (filterError) {
@@ -99,7 +103,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
         records = allRecords.filter(record => {
           const recordYear = record.get('year');
-          return recordYear && parseInt(recordYear.toString()) === parseInt(selectedYear);
+          return recordYear && parseInt(recordYear.toString()) === parseInt(yearToUse);
         });
       }
       
@@ -283,11 +287,53 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
     setApplicantRecord(null);
   };
 
-  const handleApplicantSelect = (applicant: { id: string; name: string }) => {
-    // When an applicant is selected from autocomplete, automatically check them
+  const handleApplicantSelect = async (applicant: { id: string; name: string }) => {
+    // When an applicant is selected from autocomplete, fetch their full record
     setRusheeName(applicant.name);
-    // Trigger the check process (this will also set the year from the record)
-    checkApplicant(applicant.name.trim());
+    
+    try {
+      // Fetch the full record to get year and email
+      const records = await base('Applicants').select({
+        filterByFormula: `{applicant_name} = "${applicant.name}"`,
+        maxRecords: 1
+      }).all();
+      
+      if (records.length > 0) {
+        const record = records[0];
+        const yearField = record.get('year');
+        const emailField = record.get('email');
+        
+        // Set the year and email from the record
+        let yearValue = '';
+        let emailValue = '';
+        
+        if (yearField) {
+          yearValue = yearField.toString();
+          setSelectedYear(yearValue);
+        }
+        if (emailField) {
+          emailValue = emailField.toString();
+          setEmail(emailValue);
+        }
+        
+        // Check if we have the required fields before proceeding
+        if (yearValue && emailValue) {
+          // Auto-submit after setting the values, passing the fetched values directly
+          setTimeout(() => {
+            checkApplicant(applicant.name.trim(), yearValue, emailValue);
+          }, 100);
+        } else {
+          console.log('Missing year or email in record:', { yearValue, emailValue });
+          alert('This applicant record is missing year or email information. Please fill in manually.');
+        }
+      } else {
+        console.log('No record found for applicant:', applicant.name);
+        alert('No record found for this applicant. Please fill in manually.');
+      }
+    } catch (error) {
+      console.error('Error fetching applicant details:', error);
+      alert('Error fetching applicant details. Please fill in manually.');
+    }
   };
 
   return (
