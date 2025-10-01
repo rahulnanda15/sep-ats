@@ -278,12 +278,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
       } catch (error) {
         console.error('Error saving to Airtable:', error);
-        console.error('Error details:', {
-          message: error.message,
-          statusCode: error.statusCode,
-          error: error.error
-        });
-        alert(`Error saving to database: ${error.message || 'Unknown error'}. Please try again.`);
+        
       }
     }
   };
