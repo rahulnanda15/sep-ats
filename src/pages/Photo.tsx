@@ -11,7 +11,7 @@ interface PhotoProps {
 
 const Photo: React.FC<PhotoProps> = ({ navigate }) => {
 
-  const currDay = "day_2";
+  const currDay = "day_3";
 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
