@@ -236,22 +236,29 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         // Update Airtable with the Supabase public URL and mark attendance
         if (applicantExists && applicantRecord) {
           // Update existing record (including email if different)
-          await base('Applicants').update(applicantRecord.id, {
+          const updateData = {
             'photo': publicUrl,
             'year': parseInt(selectedYear),
             'email': email,
             [currDay]: true
-          });
+          };
+          console.log('Updating existing record with data:', updateData);
+          await base('Applicants').update(applicantRecord.id, updateData);
         } else {
           // Create new record
-          await base('Applicants').create({
+          const createData = {
             'applicant_name': rusheeName,
             'photo': publicUrl,
             'year': parseInt(selectedYear),
             'email': email,
-            'status': 'Ongoing',
+            'status': 'Not Applied',
             [currDay]: true
-          });
+          };
+          console.log('Creating new record with data:', createData);
+          console.log('Current day variable:', currDay);
+          console.log('Year value:', selectedYear, 'Parsed:', parseInt(selectedYear));
+          console.log('Email value:', email);
+          await base('Applicants').create(createData);
         }
         
         // Show success animation
@@ -271,7 +278,12 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
       } catch (error) {
         console.error('Error saving to Airtable:', error);
-        alert('Error saving to database. Please try again.');
+        console.error('Error details:', {
+          message: error.message,
+          statusCode: error.statusCode,
+          error: error.error
+        });
+        alert(`Error saving to database: ${error.message || 'Unknown error'}. Please try again.`);
       }
     }
   };
