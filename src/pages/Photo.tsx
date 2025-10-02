@@ -107,6 +107,20 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         });
       }
       
+      // If no exact match found, try to find by name only (for cases where year/email is missing)
+      if (records.length === 0) {
+        console.log('No exact match found, searching by name only for missing data update');
+        const nameOnlyRecords = await base('Applicants').select({
+          filterByFormula: `{applicant_name} = "${name}"`,
+          maxRecords: 1
+        }).all();
+        
+        if (nameOnlyRecords.length > 0) {
+          // Found by name only - this means we need to update existing record with missing data
+          records = nameOnlyRecords;
+        }
+      }
+      
       console.log('Found records:', records.length);
       
 
@@ -115,22 +129,37 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         const photoField = record.get('photo');
         const yearField = record.get('year');
         const emailField = record.get('email');
+        const statusField = record.get('status');
         
         console.log('Applicant name:', name);
         console.log('Record found:', record);
         console.log('Photo field raw:', photoField);
         console.log('Year field raw:', yearField);
         console.log('Email field raw:', emailField);
+        console.log('Status field raw:', statusField);
         console.log('Photo field type:', typeof photoField);
         console.log('Is photo field truthy:', !!photoField);
         console.log('Is photo field not empty string:', photoField !== '');
         
-        // Set the year and email from the existing record
+        // Check status first - prevent check-in for rejected or not applied applicants
+        if (statusField && (statusField.toString().toLowerCase() === 'rejected' || statusField.toString().toLowerCase() === 'not applied')) {
+          alert(`Error with check-in: code 6969`);
+          setIsCheckingApplicant(false);
+          return;
+        }
+        
+        // Set the year and email from the existing record (or use provided values)
         if (yearField) {
           setSelectedYear(yearField.toString());
+        } else {
+          // Use the year from the form if the record doesn't have it
+          setSelectedYear(yearToUse);
         }
         if (emailField) {
           setEmail(emailField.toString());
+        } else {
+          // Use the email from the form if the record doesn't have it
+          setEmail(emailToUse);
         }
         
         // Check if photo field exists and is not empty
@@ -235,13 +264,20 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
         // Update Airtable with the Supabase public URL and mark attendance
         if (applicantExists && applicantRecord) {
-          // Update existing record (including email if different)
-          const updateData = {
+          // Update existing record (including email and year if they were missing)
+          const updateData: any = {
             'photo': publicUrl,
-            'year': parseInt(selectedYear),
-            'email': email,
             [currDay]: true
           };
+          
+          // Only update year and email if they're provided
+          if (selectedYear) {
+            updateData['year'] = parseInt(selectedYear);
+          }
+          if (email) {
+            updateData['email'] = email;
+          }
+          
           console.log('Updating existing record with data:', updateData);
           await base('Applicants').update(applicantRecord.id, updateData);
         } else {
@@ -331,7 +367,8 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           }, 100);
         } else {
           console.log('Missing year or email in record:', { yearValue, emailValue });
-          alert('This applicant record is missing year or email information. Please fill in manually.');
+          // Don't auto-submit, let user fill in missing information manually
+          // The form will remain open for them to complete
         }
       } else {
         console.log('No record found for applicant:', applicant.name);
