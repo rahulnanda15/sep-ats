@@ -12,6 +12,26 @@ interface PhotoProps {
 const Photo: React.FC<PhotoProps> = ({ navigate }) => {
 
   const currDay = "day_4";
+  
+  // Debug function to check available fields
+  const debugAirtableFields = async () => {
+    try {
+      const records = await base('Applicants').select({
+        maxRecords: 1
+      }).all();
+      
+      if (records.length > 0) {
+        const record = records[0];
+        console.log('Available fields in Airtable:');
+        console.log('Record fields:', Object.keys(record.fields));
+        console.log('Day-related fields:', Object.keys(record.fields).filter(key => key.includes('day')));
+        console.log('Current currDay value:', currDay);
+        console.log('Does currDay field exist?', record.fields.hasOwnProperty(currDay));
+      }
+    } catch (error) {
+      console.error('Error debugging Airtable fields:', error);
+    }
+  };
 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -72,6 +92,10 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   // Check if applicant exists and has photo
   const checkApplicant = async (name: string, yearOverride?: string, emailOverride?: string) => {
     setIsCheckingApplicant(true);
+    
+    // Debug Airtable fields on first check
+    await debugAirtableFields();
+    
     try {
       // Use override values if provided, otherwise use state values
       const yearToUse = yearOverride || selectedYear;
@@ -284,6 +308,13 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           
           console.log('Updating existing record with data:', updateData);
           console.log(`Attempting to update field: ${currDay}`);
+          console.log('Record ID:', applicantRecord.id);
+          
+          // Check if the field exists before updating
+          const existingFields = Object.keys(applicantRecord.fields);
+          console.log('Existing fields in record:', existingFields);
+          console.log(`Field ${currDay} exists:`, existingFields.includes(currDay));
+          
           await base('Applicants').update(applicantRecord.id, updateData);
           console.log('Successfully updated existing record');
         } else {
@@ -301,8 +332,33 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           console.log('Year value:', selectedYear, 'Parsed:', parseInt(selectedYear));
           console.log('Email value:', email);
           console.log(`Attempting to create record with field: ${currDay}`);
-          await base('Applicants').create(createData);
-          console.log('Successfully created new record');
+          
+          try {
+            await base('Applicants').create(createData);
+            console.log('Successfully created new record');
+          } catch (createError) {
+            console.error('Error creating record:', createError);
+            // If field doesn't exist, try with a different field name
+            if (createError.message && createError.message.includes('field')) {
+              console.log('Field might not exist, trying alternative field names...');
+              // Try common variations
+              const alternatives = ['Day 4', 'day4', 'Day_4', 'DAY_4'];
+              for (const altField of alternatives) {
+                try {
+                  const altCreateData = { ...createData };
+                  delete altCreateData[currDay];
+                  altCreateData[altField] = true;
+                  console.log(`Trying with field name: ${altField}`);
+                  await base('Applicants').create(altCreateData);
+                  console.log(`Successfully created record with field: ${altField}`);
+                  break;
+                } catch (altError) {
+                  console.log(`Failed with field name: ${altField}`, altError.message);
+                }
+              }
+            }
+            throw createError;
+          }
         }
         
         // Show success animation
