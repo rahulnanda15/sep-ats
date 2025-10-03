@@ -194,12 +194,29 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           
           // Update attendance for existing applicant
             try {
-              await base('Applicants').update(record.id, {
+              // First, let's see what the actual field names are in this record
+              console.log('=== DEBUGGING FIELD NAMES ===');
+              console.log('All fields in record:', Object.keys(record.fields));
+              console.log('Day-related fields:', Object.keys(record.fields).filter(key => key.toLowerCase().includes('day')));
+              console.log('Looking for field:', currDay);
+              console.log('Field exists?', record.fields.hasOwnProperty(currDay));
+              
+              // Try to update with the exact field name
+              const updateResult = await base('Applicants').update(record.id, {
                 [currDay]: true
               });
+              
+              console.log('Update result:', updateResult);
               console.log(`Successfully updated attendance for ${currDay}`);
+              
+              // Verify the update by fetching the record again
+              const verifyRecord = await base('Applicants').find(record.id);
+              console.log('Verification - day_4 field value:', verifyRecord.get(currDay));
+              console.log('Verification - all fields:', Object.keys(verifyRecord.fields));
+              
             } catch (error) {
               console.error('Error updating attendance:', error);
+              console.error('Error details:', error.message);
               alert(`Error updating attendance for ${currDay}. Please try again.`);
               setIsCheckingApplicant(false);
               return;
