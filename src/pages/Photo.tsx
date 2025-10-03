@@ -216,7 +216,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
               
             } catch (error) {
               console.error('Error updating attendance:', error);
-              console.error('Error details:', error.message);
+              console.error('Error details:', error instanceof Error ? error.message : String(error));
               alert(`Error updating attendance for ${currDay}. Please try again.`);
               setIsCheckingApplicant(false);
               return;
@@ -356,13 +356,13 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           } catch (createError) {
             console.error('Error creating record:', createError);
             // If field doesn't exist, try with a different field name
-            if (createError.message && createError.message.includes('field')) {
+            if (createError instanceof Error && createError.message && createError.message.includes('field')) {
               console.log('Field might not exist, trying alternative field names...');
               // Try common variations
               const alternatives = ['Day 4', 'day4', 'Day_4', 'DAY_4'];
               for (const altField of alternatives) {
                 try {
-                  const altCreateData = { ...createData };
+                  const altCreateData: any = { ...createData };
                   delete altCreateData[currDay];
                   altCreateData[altField] = true;
                   console.log(`Trying with field name: ${altField}`);
@@ -370,7 +370,7 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
                   console.log(`Successfully created record with field: ${altField}`);
                   break;
                 } catch (altError) {
-                  console.log(`Failed with field name: ${altField}`, altError.message);
+                  console.log(`Failed with field name: ${altField}`, altError instanceof Error ? altError.message : String(altError));
                 }
               }
             }
