@@ -173,9 +173,13 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
               await base('Applicants').update(record.id, {
                 [currDay]: true
               });
+              console.log(`Successfully updated attendance for ${currDay}`);
             } catch (error) {
-            console.error('Error updating attendance:', error);
-          }
+              console.error('Error updating attendance:', error);
+              alert(`Error updating attendance for ${currDay}. Please try again.`);
+              setIsCheckingApplicant(false);
+              return;
+            }
           
           setShowSuccess(true);
           setTimeout(() => {
@@ -279,7 +283,9 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           }
           
           console.log('Updating existing record with data:', updateData);
+          console.log(`Attempting to update field: ${currDay}`);
           await base('Applicants').update(applicantRecord.id, updateData);
+          console.log('Successfully updated existing record');
         } else {
           // Create new record
           const createData = {
@@ -294,7 +300,9 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           console.log('Current day variable:', currDay);
           console.log('Year value:', selectedYear, 'Parsed:', parseInt(selectedYear));
           console.log('Email value:', email);
+          console.log(`Attempting to create record with field: ${currDay}`);
           await base('Applicants').create(createData);
+          console.log('Successfully created new record');
         }
         
         // Show success animation
@@ -314,7 +322,8 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
       } catch (error) {
         console.error('Error saving to Airtable:', error);
-        
+        alert('Error saving check-in data. Please try again.');
+        return;
       }
     }
   };
