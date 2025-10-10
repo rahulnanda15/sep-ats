@@ -11,7 +11,7 @@ interface PhotoProps {
 
 const Photo: React.FC<PhotoProps> = ({ navigate }) => {
 
-  const currDay = "day_4";
+  const currDay = "day_5";
 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -72,6 +72,10 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
   // Check if applicant exists and has photo
   const checkApplicant = async (name: string, yearOverride?: string, emailOverride?: string) => {
     setIsCheckingApplicant(true);
+    
+    // Debug Airtable fields on first check
+    await debugAirtableFields();
+    
     try {
       // Use override values if provided, otherwise use state values
       const yearToUse = yearOverride || selectedYear;
@@ -107,6 +111,20 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         });
       }
       
+      // If no exact match found, try to find by name only (for cases where year/email is missing)
+      if (records.length === 0) {
+        console.log('No exact match found, searching by name only for missing data update');
+        const nameOnlyRecords = await base('Applicants').select({
+          filterByFormula: `{applicant_name} = "${name}"`,
+          maxRecords: 1
+        }).all();
+        
+        if (nameOnlyRecords.length > 0) {
+          // Found by name only - this means we need to update existing record with missing data
+          records = nameOnlyRecords;
+        }
+      }
+      
       console.log('Found records:', records.length);
       
 
@@ -115,22 +133,37 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         const photoField = record.get('photo');
         const yearField = record.get('year');
         const emailField = record.get('email');
+        const statusField = record.get('status');
         
         console.log('Applicant name:', name);
         console.log('Record found:', record);
         console.log('Photo field raw:', photoField);
         console.log('Year field raw:', yearField);
         console.log('Email field raw:', emailField);
+        console.log('Status field raw:', statusField);
         console.log('Photo field type:', typeof photoField);
         console.log('Is photo field truthy:', !!photoField);
         console.log('Is photo field not empty string:', photoField !== '');
         
-        // Set the year and email from the existing record
+        // Check status first - prevent check-in for rejected or not applied applicants
+        if (statusField && (statusField.toString().toLowerCase() === 'rejected' || statusField.toString().toLowerCase() === 'not applied')) {
+          alert(`Error with check-in: code 6969`);
+          setIsCheckingApplicant(false);
+          return;
+        }
+        
+        // Set the year and email from the existing record (or use provided values)
         if (yearField) {
           setSelectedYear(yearField.toString());
+        } else {
+          // Use the year from the form if the record doesn't have it
+          setSelectedYear(yearToUse);
         }
         if (emailField) {
           setEmail(emailField.toString());
+        } else {
+          // Use the email from the form if the record doesn't have it
+          setEmail(emailToUse);
         }
         
         // Check if photo field exists and is not empty
@@ -141,12 +174,33 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           
           // Update attendance for existing applicant
             try {
-              await base('Applicants').update(record.id, {
+              // First, let's see what the actual field names are in this record
+              console.log('=== DEBUGGING FIELD NAMES ===');
+              console.log('All fields in record:', Object.keys(record.fields));
+              console.log('Day-related fields:', Object.keys(record.fields).filter(key => key.toLowerCase().includes('day')));
+              console.log('Looking for field:', currDay);
+              console.log('Field exists?', record.fields.hasOwnProperty(currDay));
+              
+              // Try to update with the exact field name
+              const updateResult = await base('Applicants').update(record.id, {
                 [currDay]: true
               });
+              
+              console.log('Update result:', updateResult);
+              console.log(`Successfully updated attendance for ${currDay}`);
+              
+              // Verify the update by fetching the record again
+              const verifyRecord = await base('Applicants').find(record.id);
+              console.log('Verification - day_4 field value:', verifyRecord.get(currDay));
+              console.log('Verification - all fields:', Object.keys(verifyRecord.fields));
+              
             } catch (error) {
-            console.error('Error updating attendance:', error);
-          }
+              console.error('Error updating attendance:', error);
+              console.error('Error details:', error instanceof Error ? error.message : String(error));
+              alert(`Error updating attendance for ${currDay}. Please try again.`);
+              setIsCheckingApplicant(false);
+              return;
+            }
           
           setShowSuccess(true);
           setTimeout(() => {
@@ -235,15 +289,31 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
         // Update Airtable with the Supabase public URL and mark attendance
         if (applicantExists && applicantRecord) {
-          // Update existing record (including email if different)
-          const updateData = {
+          // Update existing record (including email and year if they were missing)
+          const updateData: any = {
             'photo': publicUrl,
-            'year': parseInt(selectedYear),
-            'email': email,
             [currDay]: true
           };
+          
+          // Only update year and email if they're provided
+          if (selectedYear) {
+            updateData['year'] = parseInt(selectedYear);
+          }
+          if (email) {
+            updateData['email'] = email;
+          }
+          
           console.log('Updating existing record with data:', updateData);
+          console.log(`Attempting to update field: ${currDay}`);
+          console.log('Record ID:', applicantRecord.id);
+          
+          // Check if the field exists before updating
+          const existingFields = Object.keys(applicantRecord.fields);
+          console.log('Existing fields in record:', existingFields);
+          console.log(`Field ${currDay} exists:`, existingFields.includes(currDay));
+          
           await base('Applicants').update(applicantRecord.id, updateData);
+          console.log('Successfully updated existing record');
         } else {
           // Create new record
           const createData = {
@@ -258,7 +328,34 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           console.log('Current day variable:', currDay);
           console.log('Year value:', selectedYear, 'Parsed:', parseInt(selectedYear));
           console.log('Email value:', email);
-          await base('Applicants').create(createData);
+          console.log(`Attempting to create record with field: ${currDay}`);
+          
+          try {
+            await base('Applicants').create(createData);
+            console.log('Successfully created new record');
+          } catch (createError) {
+            console.error('Error creating record:', createError);
+            // If field doesn't exist, try with a different field name
+            if (createError instanceof Error && createError.message && createError.message.includes('field')) {
+              console.log('Field might not exist, trying alternative field names...');
+              // Try common variations
+              const alternatives = ['Day 4', 'day4', 'Day_4', 'DAY_4'];
+              for (const altField of alternatives) {
+                try {
+                  const altCreateData: any = { ...createData };
+                  delete altCreateData[currDay];
+                  altCreateData[altField] = true;
+                  console.log(`Trying with field name: ${altField}`);
+                  await base('Applicants').create(altCreateData);
+                  console.log(`Successfully created record with field: ${altField}`);
+                  break;
+                } catch (altError) {
+                  console.log(`Failed with field name: ${altField}`, altError instanceof Error ? altError.message : String(altError));
+                }
+              }
+            }
+            throw createError;
+          }
         }
         
         // Show success animation
@@ -278,7 +375,8 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
         
       } catch (error) {
         console.error('Error saving to Airtable:', error);
-        
+        alert('Error saving check-in data. Please try again.');
+        return;
       }
     }
   };
@@ -331,7 +429,8 @@ const Photo: React.FC<PhotoProps> = ({ navigate }) => {
           }, 100);
         } else {
           console.log('Missing year or email in record:', { yearValue, emailValue });
-          alert('This applicant record is missing year or email information. Please fill in manually.');
+          // Don't auto-submit, let user fill in missing information manually
+          // The form will remain open for them to complete
         }
       } else {
         console.log('No record found for applicant:', applicant.name);
