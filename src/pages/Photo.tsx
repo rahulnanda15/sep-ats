@@ -11,7 +11,7 @@ interface PhotoProps {
 
 const Photo: React.FC<PhotoProps> = ({ navigate }) => {
 
-  const currDay = "day_5";
+  const currDay = "day_3";
   
   // Debug function to check available fields
   const debugAirtableFields = async () => {
