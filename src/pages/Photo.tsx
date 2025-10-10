@@ -11,7 +11,27 @@ interface PhotoProps {
 
 const Photo: React.FC<PhotoProps> = ({ navigate }) => {
 
-  const currDay = "day_5";
+  const currDay = "day_4";
+  
+  // Debug function to check available fields
+  const debugAirtableFields = async () => {
+    try {
+      const records = await base('Applicants').select({
+        maxRecords: 1
+      }).all();
+      
+      if (records.length > 0) {
+        const record = records[0];
+        console.log('Available fields in Airtable:');
+        console.log('Record fields:', Object.keys(record.fields));
+        console.log('Day-related fields:', Object.keys(record.fields).filter(key => key.includes('day')));
+        console.log('Current currDay value:', currDay);
+        console.log('Does currDay field exist?', record.fields.hasOwnProperty(currDay));
+      }
+    } catch (error) {
+      console.error('Error debugging Airtable fields:', error);
+    }
+  };
 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
